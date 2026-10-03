@@ -1,0 +1,34 @@
+modLoader="javafml"
+loaderVersion="${loader_version_range}"
+license="${mod_license}"
+
+[[mods]]
+modId="${mod_id}"
+version="${mod_version}"
+displayName="${mod_name}"
+authors="Xulai"
+displayTest="IGNORE_ALL_VERSION"
+logoFile="logo.png"
+description='''
+Key Switch - when several mods share the same key, hold that key and scroll the mouse wheel to choose which one fires. No panel, no clicking, no interruption: hold the shared key (0.4 s by default) and a small card appears above your hotbar listing every binding on that key, scroll to move the highlight, release the key to confirm. Every other binding on that key is set to "unbound key", exactly as if you unbound it by hand, so nothing they poll can see the press - not consumeClick(), not isDown(), not matches(), not a key handler inside a screen.
+Your real bindings are registered in config/keyswitch/state.json and written back before options.txt is saved, when you open Options > Key Binds, and on every restart - so nothing is lost if you remove this mod or rebind by hand. Movement keys (WASD, space, sneak, sprint, use/attack/pick item) sit on a whitelist: holding them never starts the wheel switcher and they can never be blocked. Press the overview key (default F8) for a list of every shared key - there you can drill into one, allow or block single bindings and restore the vanilla behaviour.
+
+按键切换：多个模组共用一个按键时，按住这个键再滚滚轮就能选择要触发哪一个——不弹界面、不打断操作。按住共用键（默认 0.4 秒）会在快捷栏上方出现一个小卡片，列出该按键上的全部绑定，滚动滚轮移动高亮，松手即确认。其余同键绑定会被替换成「无按键」，等同于你手动解绑，所以对方无论是 consumeClick()、isDown()、matches()，还是在界面里自己监听按键，都收不到这次按键。
+真实绑定登记在 config/keyswitch/state.json，并在写入 options.txt 之前、进入「选项-按键绑定」时、以及每次启动时自动还原，卸载本模组或手工改键都不会丢绑定。
+WASD、空格、下蹲、疾跑、使用/攻击/选取方块等控制键在白名单内：长按它们不会进入滚轮切换，也永不被屏蔽。需要管理这类按键时按总览键（默认 F8）打开总览界面，可以逐个放行/屏蔽，或恢复原版全部触发。
+可调项在 config/keyswitch-client.toml（长按毫秒、界面内是否生效、鼠标长按、是否暂停、提示开关、白名单），支持热重载与模组列表里的配置界面。
+'''
+
+[[dependencies.${mod_id}]]
+    modId="neoforge"
+    type="required"
+    versionRange="[${neo_version},)"
+    ordering="NONE"
+    side="CLIENT"
+
+[[dependencies.${mod_id}]]
+    modId="minecraft"
+    type="required"
+    versionRange="${minecraft_version_range}"
+    ordering="NONE"
+    side="CLIENT"
