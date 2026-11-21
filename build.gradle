@@ -30,7 +30,7 @@ repositories {
 }
 
 base {
-    archivesName = "KeySwitch-${mod_version}-${minecraft_version}-NeoForge"
+    archivesName = "KeySwitch-${mod_version}"
 }
 
 jar {

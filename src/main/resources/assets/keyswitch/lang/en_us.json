@@ -9,8 +9,6 @@
   "keyswitch.configuration.workInsideGui.tooltip": "Holding a key inside an inventory or chest screen still opens the panel; text fields always keep priority",
   "keyswitch.configuration.mouseButtonLongPress": "Mouse Button Long Press",
   "keyswitch.configuration.mouseButtonLongPress.tooltip": "Holding a mouse button opens the panel too. When off, mouse button conflicts can only be switched from the overview",
-  "keyswitch.configuration.swallowHeldTrigger": "Swallow Held Press",
-  "keyswitch.configuration.swallowHeldTrigger.tooltip": "Off by default: presses on a shared key are left untouched, so press-to-trigger and hold-to-activate mods behave normally (the current binding fires once before you scroll). Turn it on to swallow the key while held so nothing on it fires, at the cost of taps firing on release and hold-to-activate bindings breaking",
   "keyswitch.configuration.pauseWhileChoosing": "Pause On Overview",
   "keyswitch.configuration.pauseWhileChoosing.tooltip": "The panel pauses singleplayer like a regular inventory screen",
   "keyswitch.configuration.protectedBindings": "Control Key Whitelist",

@@ -4,12 +4,9 @@ import com.mojang.blaze3d.platform.InputConstants;
 import com.xulai.keyswitch.Config;
 import com.xulai.keyswitch.KeySwitch;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 import net.minecraft.Util;
-import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.options.controls.KeyBindsScreen;
@@ -35,10 +32,7 @@ import org.lwjgl.glfw.GLFW;
 public final class KeySwitchClient {
 
     private static final Map<InputConstants.Key, Long> HELD = new HashMap<>();
-    private static final Map<InputConstants.Key, Long> PULSES = new HashMap<>();
-    private static final Set<InputConstants.Key> SWALLOWED = new HashSet<>();
     private static final long TOAST_MILLIS = 3500L;
-    private static final long PULSE_MILLIS = 60L;
 
     private static long nextScan;
     private static Component toast;
@@ -73,20 +67,14 @@ public final class KeySwitchClient {
             return;
         }
         if (event.getAction() == GLFW.GLFW_REPEAT) {
-            if (mc.screen == null && SWALLOWED.contains(input)) {
-                swallow(input);
-            }
             return;
         }
         if (WheelSwitch.isActive()) {
-            commitWheel(mc);
+            WheelSwitch.commit(mc);
         }
         if (!canArm(mc) || !KeySwitchEngine.isSwitchable(input)) {
             HELD.remove(input);
             return;
-        }
-        if (swallowArmed(mc)) {
-            swallow(input);
         }
         HELD.putIfAbsent(input, Util.getMillis());
     }
@@ -103,14 +91,11 @@ public final class KeySwitchClient {
             return;
         }
         if (WheelSwitch.isActive()) {
-            commitWheel(mc);
+            WheelSwitch.commit(mc);
         }
         if (!Config.MOUSE_BUTTON_LONG_PRESS.get() || !canArm(mc) || !KeySwitchEngine.isSwitchable(input)) {
             HELD.remove(input);
             return;
-        }
-        if (swallowArmed(mc)) {
-            swallow(input);
         }
         HELD.putIfAbsent(input, Util.getMillis());
     }
@@ -157,9 +142,6 @@ public final class KeySwitchClient {
             return false;
         }
         WheelSwitch.scrolled(mc, delta);
-        if (swallowArmed(mc)) {
-            swallow(input);
-        }
         return true;
     }
 
@@ -171,13 +153,28 @@ public final class KeySwitchClient {
         long required = Config.LONG_PRESS_MILLIS.get();
         long now = Util.getMillis();
         InputConstants.Key best = null;
-        for (Map.Entry<InputConstants.Key, Long> entry : HELD.entrySet()) {
-            if (now - entry.getValue() >= required && KeySwitchEngine.isSwitchable(entry.getKey())) {
+        for (Iterator<Map.Entry<InputConstants.Key, Long>> it = HELD.entrySet().iterator(); it.hasNext(); ) {
+            Map.Entry<InputConstants.Key, Long> entry = it.next();
+            if (!stillDown(mc, entry.getKey())) {
+                it.remove();
+                continue;
+            }
+            if (best == null && now - entry.getValue() >= required && KeySwitchEngine.isSwitchable(entry.getKey())) {
                 best = entry.getKey();
-                break;
             }
         }
         return best;
+    }
+
+    private static boolean stillDown(Minecraft mc, InputConstants.Key input) {
+        long window = mc.getWindow().getWindow();
+        if (input.getType() == InputConstants.Type.MOUSE) {
+            return GLFW.glfwGetMouseButton(window, input.getValue()) == GLFW.GLFW_PRESS;
+        }
+        if (input.getType() == InputConstants.Type.KEYSYM) {
+            return InputConstants.isKeyDown(window, input.getValue());
+        }
+        return true;
     }
 
     @SubscribeEvent
@@ -193,27 +190,17 @@ public final class KeySwitchClient {
                 KeySwitchEngine.sync(mc);
             }
         }
-        for (Iterator<Map.Entry<InputConstants.Key, Long>> it = PULSES.entrySet().iterator(); it.hasNext(); ) {
-            Map.Entry<InputConstants.Key, Long> pulse = it.next();
-            if (now >= pulse.getValue()) {
-                it.remove();
-                KeyMapping.set(pulse.getKey(), false);
-            }
-        }
         if (!mc.isWindowActive()) {
-            clearHolds();
+            HELD.clear();
             WheelSwitch.stop();
         }
         if (mc.level == null) {
-            clearHolds();
+            HELD.clear();
             hintShown = false;
             return;
         }
-        if (WheelSwitch.isActive()) {
-            if (WheelSwitch.expired()) {
-                commitWheel(mc);
-            }
-            keepSwallowing(mc);
+        if (WheelSwitch.isActive() && WheelSwitch.expired()) {
+            WheelSwitch.commit(mc);
         }
         if (!hintShown && mc.player != null && mc.player.tickCount > 40) {
             hintShown = true;
@@ -233,7 +220,7 @@ public final class KeySwitchClient {
         if (event.getScreen() instanceof KeyBindsScreen) {
             KeySwitchEngine.stopEditing(Minecraft.getInstance());
         } else if (event.getScreen() instanceof KeySwitchScreen) {
-            clearHolds();
+            HELD.clear();
         }
     }
 
@@ -272,68 +259,8 @@ public final class KeySwitchClient {
     private static void release(Minecraft mc, InputConstants.Key input) {
         HELD.remove(input);
         if (WheelSwitch.holds(input)) {
-            commitWheel(mc);
-            return;
+            WheelSwitch.commit(mc);
         }
-        if (SWALLOWED.remove(input)) {
-            KeyMapping.click(input);
-            if (mc.screen == null) {
-                KeyMapping.set(input, true);
-                PULSES.put(input, Util.getMillis() + PULSE_MILLIS);
-            }
-        }
-    }
-
-    private static void commitWheel(Minecraft mc) {
-        InputConstants.Key committed = WheelSwitch.commit(mc);
-        if (committed != null) {
-            SWALLOWED.remove(committed);
-            HELD.remove(committed);
-        }
-    }
-
-    private static boolean swallowArmed(Minecraft mc) {
-        return Config.SWALLOW_HELD_TRIGGER.get() && mc.screen == null && !isTyping(mc);
-    }
-
-    private static void swallow(InputConstants.Key input) {
-        for (KeyMapping mapping : KeySwitchEngine.mappingsOf(input)) {
-            int guard = 0;
-            while (guard++ < 8 && mapping.consumeClick()) {
-                mapping.setDown(false);
-            }
-            mapping.setDown(false);
-        }
-        SWALLOWED.add(input);
-    }
-
-    private static void keepSwallowing(Minecraft mc) {
-        if (mc.screen != null || SWALLOWED.isEmpty()) {
-            return;
-        }
-        for (InputConstants.Key held : Set.copyOf(SWALLOWED)) {
-            swallow(held);
-        }
-    }
-
-    private static void clearHolds() {
-        HELD.clear();
-        SWALLOWED.clear();
-        PULSES.clear();
-    }
-
-    private static void sendConflictHint(Minecraft mc) {
-        if (!Config.SHOW_CONFLICT_HINT.get() || mc.player == null) {
-            return;
-        }
-        int conflicts = KeySwitchEngine.conflictKeys().size();
-        if (conflicts == 0) {
-            return;
-        }
-        mc.gui.getChat().addMessage(Component.translatable(
-                "text.keyswitch.hint",
-                conflicts,
-                KeySwitchKeys.OVERVIEW.getTranslatedKeyMessage()));
     }
 
     private static boolean canArm(Minecraft mc) {
@@ -351,5 +278,19 @@ public final class KeySwitchClient {
 
     private static boolean isTyping(Minecraft mc) {
         return mc.screen != null && mc.screen.getFocused() instanceof EditBox box && box.canConsumeInput();
+    }
+
+    private static void sendConflictHint(Minecraft mc) {
+        if (!Config.SHOW_CONFLICT_HINT.get() || mc.player == null) {
+            return;
+        }
+        int conflicts = KeySwitchEngine.conflictKeys().size();
+        if (conflicts == 0) {
+            return;
+        }
+        mc.gui.getChat().addMessage(Component.translatable(
+                "text.keyswitch.hint",
+                conflicts,
+                KeySwitchKeys.OVERVIEW.getTranslatedKeyMessage()));
     }
 }

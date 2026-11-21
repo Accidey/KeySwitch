@@ -9,8 +9,6 @@
   "keyswitch.configuration.workInsideGui.tooltip": "打开背包、箱子等界面时长按依然呼出切换面板；聊天框等输入框获得焦点时永远不会触发",
   "keyswitch.configuration.mouseButtonLongPress": "支持鼠标长按",
   "keyswitch.configuration.mouseButtonLongPress.tooltip": "按住鼠标键也呼出切换面板；关闭时鼠标键冲突只能在总览界面里切换",
-  "keyswitch.configuration.swallowHeldTrigger": "按住时吞掉触发",
-  "keyswitch.configuration.swallowHeldTrigger.tooltip": "默认关：按下共用键时不动它，按下即触发、长按型模组都照常工作（滚轮切换时当前功能会先触发一次）。打开则按住期间吞掉该键的全部触发，代价是短按改为松手触发、长按型按键失效",
   "keyswitch.configuration.pauseWhileChoosing": "总览时暂停",
   "keyswitch.configuration.pauseWhileChoosing.tooltip": "呼出切换面板时像原版界面一样暂停单人游戏",
   "keyswitch.configuration.protectedBindings": "控制键白名单",
